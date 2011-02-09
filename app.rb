@@ -10,6 +10,8 @@ require 'open-uri'
 require 'sinatra/reloader' if development?
 
 get '/' do
+  
+  puts searchAndReplace("This has some dodgy tags in it", /t.gs/, "tigs")
 
   source_feed = params[:source_feed]
   mappings_name = params[:mappings_name]
@@ -38,7 +40,7 @@ get '/' do
   #dputs "Mappings JSON: " + mappings_json
 
   # Injest the provided feed using the provided mappings
-  injest (source_json, mappings_json, desired_array_key, preserve_meta)
+  injest(source_json, mappings_json, desired_array_key, preserve_meta)
 
 
 end
@@ -145,6 +147,10 @@ def injest source_json, mappings_json, desired_array_key, preserve_meta
 
 end
 
+
+def searchAndReplace content, search, replace
+  content.gsub(search,replace)
+end
 
 
 def dputs foo

@@ -95,4 +95,7 @@ We want to map this to lat/lon (as it so happens, within the 'attributes' hash),
 
 In this case, the same value mapping will be applied to each of the destination keys.  However, we're still able to control on a per-attribute basis where the destination keys go.
 
+##TODO
 
+1. Allow for search replace of values to remove cruft in some cases (regex would be nice)
+2. Provide hooks so that if certain conditions of injestion are not met, an alert is sent
