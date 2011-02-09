@@ -14,9 +14,13 @@ get '/' do
   source_feed = params[:source_feed]
   mappings_name = params[:mappings_name]
   desired_array_key = params[:key]
-  preserve_meta = params[:meta]
+  preserve_meta = false
   
   preserve_meta = true if params[:meta].nil?
+  
+  if source_feed.nil? || mappings_name.nil? || desired_array_key.nil?
+    return erb :usage
+  end
 
 
   dputs "Source Feed: " + source_feed if !source_feed.nil?
@@ -34,7 +38,7 @@ get '/' do
   #dputs "Mappings JSON: " + mappings_json
 
   # Injest the provided feed using the provided mappings
-  injest (source_json, mappings_json, desired_array_key)
+  injest (source_json, mappings_json, desired_array_key, preserve_meta)
 
 
 end
@@ -44,7 +48,7 @@ end
 # Utilties
 
 # Injest the feed provided as json in 'source', using the mappings provided as json in 'mappings'
-def injest source_json, mappings_json, desired_array_key
+def injest source_json, mappings_json, desired_array_key, preserve_meta
 
   #dputs source_json
 
@@ -63,7 +67,7 @@ def injest source_json, mappings_json, desired_array_key
   # puts feedJSON
 
   head = feedJSON['head']
-  newFeed['head'] = head if preserve_meta?
+  newFeed['head'] = head if preserve_meta
 
   body = feedJSON['body']
   desired_array = body[desired_array_key]
@@ -127,7 +131,7 @@ def injest source_json, mappings_json, desired_array_key
 
   newBody = {desired_array_key => newEvents}
  
-  if preserve_meta?
+  if preserve_meta
     newFeed['body'] = newBody
   else
     newFeed = newBody

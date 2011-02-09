@@ -1,7 +1,7 @@
 {
 "georss_point":{"delimiter":" ","destination_keys":["lat","lon"]},
 "_id":"id",
-"georss_polygon","area",
+"georss_polygon":"area",
 "internal_last_updated":"updated_at",
 "pubdate":"created_at",
 "size":"attributes.size",
