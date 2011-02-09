@@ -10,30 +10,30 @@ require 'open-uri'
 require 'sinatra/reloader' if development?
 
 get '/' do
-  
+
   source_feed = params[:source_feed]
   mappings_name = params[:mappings_name]
   desired_array_key = params[:key]
-  
-  
+
+
   dputs "Source Feed: " + source_feed if !source_feed.nil?
   dputs "Mappings Name: " + mappings_name if !mappings_name.nil?
   dputs "Desired Array Key: " + desired_array_key if !desired_array_key.nil?
-  
+
   source_url = "http://" + source_feed
   mappings_url = "mappings/" + mappings_name + ".json"
-  
+
   #dputs "Source URL: " + source_url + " Mappings URL: " + mappings_url if !source_url.nil? && !mappings_url.nil?
-  
+
   source_json = open(source_url).read
   #dputs "Source JSON: " + source_json
   mappings_json = File.open(mappings_url, 'r').read
   #dputs "Mappings JSON: " + mappings_json
-  
+
   # Injest the provided feed using the provided mappings
   injest (source_json, mappings_json, desired_array_key)
- 
-  
+
+
 end
 
 
@@ -42,99 +42,96 @@ end
 
 # Injest the feed provided as json in 'source', using the mappings provided as json in 'mappings'
 def injest source_json, mappings_json, desired_array_key
-  
+
   #dputs source_json
-  
+
   require 'json'
-  
+
   # Construct a new feed
-    newFeed = {}
+  newFeed = {}
 
-    # Read in the list of mappings into an easy to access hash
-    hashtributes = JSON.parse(mappings_json)
-    
-    # for each event'
-    require 'json' #=> true
-    feedJSON = JSON.parse(source_json)
+  # Read in the list of mappings into an easy to access hash
+  hashtributes = JSON.parse(mappings_json)
 
-    # puts feedJSON
+  # for each event'
+  require 'json' #=> true
+  feedJSON = JSON.parse(source_json)
 
-    head = feedJSON['head']
-    newFeed['head'] = head
+  # puts feedJSON
 
-    body = feedJSON['body']
-    desired_array = body[desired_array_key]
-    newEvents = Array.new
+  head = feedJSON['head']
+  newFeed['head'] = head
 
-    desired_array.each do |event|
-      #puts "event: #{event}\n"
+  body = feedJSON['body']
+  desired_array = body[desired_array_key]
+  newEvents = Array.new
 
-      newEvent = {'attributes' => {}}
+  desired_array.each do |event|
+    #puts "event: #{event}\n"
 
-      # for each attribute in our mapper
+    newEvent = {'attributes' => {}}
 
-      hashtributes.each_pair do |k,v|
+    # for each attribute in our mapper
 
-        #dputs "Key: #{k} Value:#{v}"
-        #dputs "Class: #{v.class}"
-        # Grab the value of the key key
-        eventVal = event[k]
-        
-        # Do any special parsing required
-        if v.class == Hash
-          # In this case there's a spec for how the value will be mapped to the new value(s)
-          delim = v['delimiter']
-          destinationKeys = v['destination_keys']
-          destinationValues = event[k].split(delim)
-          #dputs "Delim: " + delim
-          #dputs "Destination Keys: " + destination_keys.to_s
-          arrayIndex = 0
-          destinationKeys.each do |destinationKey|
-            dputs destinationKey
+    hashtributes.each_pair do |k,v|
+
+      #dputs "Key: #{k} Value:#{v}"
+      #dputs "Class: #{v.class}"
+      # Grab the value of the key key
+      eventVal = event[k]
+
+      # Do any special parsing required
+      if v.class == Hash
+        # In this case there's a spec for how the value will be mapped to the new value(s)
+
+        delim = v['delimiter']
+        destinationKeys = v['destination_keys']
+        destinationValues = event[k].split(delim)
+        #dputs "Delim: " + delim
+        #dputs "Destination Keys: " + destination_keys.to_s
+        arrayIndex = 0
+        destinationKeys.each do |destinationKey|
+          #dputs destinationKey
+          # TODO: Allow this to use our 'attributes.foo' mechanism, as is done below
+          if destinationKey.split('.').length > 1
+             # nested attribute 
+            newEvent['attributes'][destinationKey.gsub("attributes.","")] = destinationValues[arrayIndex]
+          else
             newEvent[destinationKey] = destinationValues[arrayIndex] 
-            arrayIndex = arrayIndex + 1
           end
-          
-        else
-          #puts no keys
-          newEvent[v] = eventVal
+          arrayIndex = arrayIndex + 1
         end
 
-        # Insert it into the value of the val key
-        
-  
-     #   if v.split('.').length > 1
+      else
+        # puts no keys
+        if v.split('.').length > 1
           # nested attribute 
-      #    newEvent['attributes'][v.gsub("attributes.","")] = eventVal   
-       # else
+          newEvent['attributes'][v.gsub("attributes.","")] = eventVal   
+        else
           # normal attribute
-        #  newEvent[v] = eventVal
+          newEvent[v] = eventVal
 
-        #end
-
-      
-
+        end
       end
-
-      #puts newevent
-      newEvents << newEvent
-
 
     end
 
-    newBody = {'events' => newEvents}
-    newFeed['body'] = newBody
-    #dputs newFeed.to_json
+    #puts newevent
+    newEvents << newEvent
 
-    newFeed.to_json
 
-  
-  
+  end
+
+  newBody = {desired_array_key => newEvents}
+  newFeed['body'] = newBody
+  #dputs newFeed.to_json
+
+  newFeed.to_json
+
+
+
 end
 
-def insertHash  
-  
-end
 
 
 def dputs foo
