@@ -1,54 +1,59 @@
-# server.rb
+# Pacman - generic content driven injestor
+
+# Provide it with a url to source from, and the name of a mappings file (json) and it returns an injested json feed
+
+
+
 require 'sinatra'
 require 'hpricot'
 require 'open-uri'
 require 'sinatra/reloader' if development?
 
-
-get '/injest/:source' do |source|
-
-  #puts "Source: " + source
-  server = "http://" + source
-  stuff = Hpricot(open(server))
-  puts stuff
-  injest stuff
+get '/' do
   
-
+  source_feed = params[:source_feed]
+  mappings_name = params[:mappings_name]
+  desired_array_key = params[:key]
+  
+  
+  dputs "Source Feed: " + source_feed if !source_feed.nil?
+  dputs "Mappings Name: " + mappings_name if !mappings_name.nil?
+  dputs "Desired Array Key: " + desired_array_key if !desired_array_key.nil?
+  
+  source_url = "http://" + source_feed
+  mappings_url = "mappings/" + mappings_name + ".json"
+  
+  #dputs "Source URL: " + source_url + " Mappings URL: " + mappings_url if !source_url.nil? && !mappings_url.nil?
+  
+  source_json = open(source_url).read
+  #dputs "Source JSON: " + source_json
+  mappings_json = File.open(mappings_url, 'r').read
+  #dputs "Mappings JSON: " + mappings_json
+  
+  # Injest the provided feed using the provided mappings
+  injest (source_json, mappings_json, desired_array_key)
+ 
+  
 end
 
-def injest source_json
+
+
+# Utilties
+
+# Injest the feed provided as json in 'source', using the mappings provided as json in 'mappings'
+def injest source_json, mappings_json, desired_array_key
   
-   # Construct a new feed
+  #dputs source_json
+  
+  require 'json'
+  
+  # Construct a new feed
     newFeed = {}
 
     # Read in the list of mappings into an easy to access hash
-    hashtributes = {}
-    counter = 1
-    begin
-      file = File.open("mappings.rb", "r")
-      while (line = file.gets)
-
-        counter = counter + 1
-
-        if false #mappingString.chr == "#"
-          # Ignore comments
-        else
-          # It's a mapping, so grab the source key and destination key
-          keyVals = line.split(',')
-          key = keyVals[0]
-          val = keyVals[1].gsub("\n","")
-          #puts "Key: #{key} Value:#{val}"
-          hashtributes[key] = val
-        end
-      end
-      file.close
-    rescue => err
-      puts "Exception: #{err}"
-      err
-    end
-
-
-    # for each fire'
+    hashtributes = JSON.parse(mappings_json)
+    
+    # for each event'
     require 'json' #=> true
     feedJSON = JSON.parse(source_json)
 
@@ -58,144 +63,80 @@ def injest source_json
     newFeed['head'] = head
 
     body = feedJSON['body']
-    fires = body['fires']
-    newFires = Array.new
+    desired_array = body[desired_array_key]
+    newEvents = Array.new
 
+    desired_array.each do |event|
+      #puts "event: #{event}\n"
 
-    fires.each do |fire|
-      #puts "Fire: #{fire}\n"
-
-      newFire = {'attributes' => {}}
+      newEvent = {'attributes' => {}}
 
       # for each attribute in our mapper
 
       hashtributes.each_pair do |k,v|
 
-        #puts "Key: #{k} Value:#{v}"
-
+        #dputs "Key: #{k} Value:#{v}"
+        #dputs "Class: #{v.class}"
         # Grab the value of the key key
-        fireVal = fire[k]
+        eventVal = event[k]
+        
+        # Do any special parsing required
+        if v.class == Hash
+          # In this case there's a spec for how the value will be mapped to the new value(s)
+          delim = v['delimiter']
+          destinationKeys = v['destination_keys']
+          destinationValues = event[k].split(delim)
+          #dputs "Delim: " + delim
+          #dputs "Destination Keys: " + destination_keys.to_s
+          arrayIndex = 0
+          destinationKeys.each do |destinationKey|
+            dputs destinationKey
+            newEvent[destinationKey] = destinationValues[arrayIndex] 
+            arrayIndex = arrayIndex + 1
+          end
+          
+        else
+          #puts no keys
+          newEvent[v] = eventVal
+        end
 
         # Insert it into the value of the val key
-        newFire['attributes'][v.gsub("attributes.","")] = fireVal   
+        
   
-        if v.split('.').length > 1
+     #   if v.split('.').length > 1
           # nested attribute 
-        else
+      #    newEvent['attributes'][v.gsub("attributes.","")] = eventVal   
+       # else
           # normal attribute
-          newFire[v] = fireVal
+        #  newEvent[v] = eventVal
 
-        end
+        #end
 
       
 
       end
 
-      #puts newFire
-      newFires << newFire
+      #puts newevent
+      newEvents << newEvent
 
 
     end
 
-    newBody = {'fires' => newFires}
+    newBody = {'events' => newEvents}
     newFeed['body'] = newBody
-    puts newFeed.to_json
+    #dputs newFeed.to_json
 
     newFeed.to_json
 
-  end
+  
+  
+end
 
-# return an injested version of dummy_feed.json
-# Kept for legacy
-
-get '/' do
-
-  # Construct a new feed
-  newFeed = {}
-
-  # Read in the list of mappings into an easy to access hash
-  hashtributes = {}
-  counter = 1
-  begin
-    file = File.open("mappings.rb", "r")
-    while (line = file.gets)
-
-      counter = counter + 1
-
-      if false #mappingString.chr == "#"
-        # Ignore comments
-      else
-        # It's a mapping, so grab the source key and destination key
-        keyVals = line.split(',')
-        key = keyVals[0]
-        val = keyVals[1].gsub("\n","")
-        #puts "Key: #{key} Value:#{val}"
-        hashtributes[key] = val
-      end
-    end
-    file.close
-  rescue => err
-    puts "Exception: #{err}"
-    err
-  end
+def insertHash  
+  
+end
 
 
-  # for each fire'
-  require 'json' #=> true
-  feedFile = String.new(File.open("dummy_feed.json", 'r').read)
-  #puts feedFile
-
-  feedJSON = JSON.parse(feedFile)
-
-  # puts feedJSON
-
-  head = feedJSON['head']
-  newFeed['head'] = head
-
-  body = feedJSON['body']
-  fires = body['fires']
-  newFires = Array.new
-
-
-  fires.each do |fire|
-    #puts "Fire: #{fire}\n"
-
-    newFire = {'attributes' => {}}
-
-    # for each attribute in our mapper
-
-    hashtributes.each_pair do |k,v|
-
-      #puts "Key: #{k} Value:#{v}"
-
-      # Grab the value of the key key
-      fireVal = fire[k]
-
-      # Insert it into the value of the val key
-
-      if v.split('.').length > 1
-        # nested attribute 
-          newFire['attributes'][v.gsub("attributes.","")] = fireVal   
-      else
-        # normal attribute
-        newFire[v] = fireVal
-
-      end
-
-    
-
-    end
-
-    #puts newFire
-    newFires << newFire
-
-
-  end
-
-  newBody = {'fires' => newFires}
-  newFeed['body'] = newBody
-  puts newFeed.to_json
-
-  newFeed.to_json
-
+def dputs foo
+  puts foo
 end
