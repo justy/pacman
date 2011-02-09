@@ -10,11 +10,11 @@ It's designed to be generic via usage of a 'mappings/foo.json' file, in which a 
 
 ###Usage:
 
-You provide it with:
+You provide it wit h:
 
 1. The url of a feed to injest
-2. The name of a mappings file 'foo' that will be found in /mappings/foo.json
-3. The key for the desired array to injest
+1. The name of a mappings file 'foo' that will be found in /mappings/foo.json
+1. The key for the desired array to injest
 
 For example:
 
@@ -68,7 +68,8 @@ We want to map this to lat/lon (as it so happens, within the 'attributes' hash),
   "destination_keys" : ["attributes.lat", "attributes.lon"]
 }`
 
-
+---
+(To implement)
 
 "key" : {
   "value_maps" : {
@@ -76,10 +77,22 @@ We want to map this to lat/lon (as it so happens, within the 'attributes' hash),
     false : "No",
     "nil" : "No",
     "default" : "No"
-  }
+  },
+  "destination_key" : "key"
 }
-:   This usage takes care of situations where the values of keys require translation.  Note that the two cases of no data ("nil") as well as a default case may be allowed for.
+:   This usage takes care of situations where the values of keys require translation.  Note that the two cases of no data ("nil") as well as a default case may be allowed for.  Note that if the "destination_key" is not specified, it's assumed to be whatever "key" is.  (In this case, "key").
 
+"key" : {
+  "delimiter" : "_",
+  "destination_keys" : ["key1", "key2", "attributes.key3"],
+  "value_maps" : {
+    true : "Yes",
+    false : "No",
+    "nil" : "No"
+  }
+  
+}
 
+In this case, the same value mapping will be applied to each of the destination keys.  However, we're still able to control on a per-attribute basis where the destination keys go.
 
 

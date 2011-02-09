@@ -14,6 +14,9 @@ get '/' do
   source_feed = params[:source_feed]
   mappings_name = params[:mappings_name]
   desired_array_key = params[:key]
+  preserve_meta = params[:meta]
+  
+  preserve_meta = true if params[:meta].nil?
 
 
   dputs "Source Feed: " + source_feed if !source_feed.nil?
@@ -60,7 +63,7 @@ def injest source_json, mappings_json, desired_array_key
   # puts feedJSON
 
   head = feedJSON['head']
-  newFeed['head'] = head
+  newFeed['head'] = head if preserve_meta?
 
   body = feedJSON['body']
   desired_array = body[desired_array_key]
@@ -123,7 +126,13 @@ def injest source_json, mappings_json, desired_array_key
   end
 
   newBody = {desired_array_key => newEvents}
-  newFeed['body'] = newBody
+ 
+  if preserve_meta?
+    newFeed['body'] = newBody
+  else
+    newFeed = newBody
+  end
+  
   #dputs newFeed.to_json
 
   newFeed.to_json
