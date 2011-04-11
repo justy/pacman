@@ -1,6 +1,6 @@
 # Pacman - generic content driven injestor
 
-# Provide it with a url to source from, and the name of a mappings file (ruby) and it returns an injested json feed
+# Provide it with a url to source from, and the name of a mappings file (json) and it returns an injested json feed
 
 
 
@@ -10,10 +10,8 @@ require 'open-uri'
 require 'sinatra/reloader' if development?
 
 get '/' do
-  erb :usage
-end
-
-get '/injestJSON' do
+  
+  puts searchAndReplace("This has some dodgy tags in it", /t.gs/, "tigs")
 
   source_feed = params[:source_feed]
   mappings_name = params[:mappings_name]
@@ -32,7 +30,7 @@ get '/injestJSON' do
   dputs "Desired Array Key: " + desired_array_key if !desired_array_key.nil?
 
   source_url = "http://" + source_feed
-  mappings_url = "mappings/" + mappings_name + ".rb"
+  mappings_url = "mappings/" + mappings_name + ".json"
 
   #dputs "Source URL: " + source_url + " Mappings URL: " + mappings_url if !source_url.nil? && !mappings_url.nil?
 
@@ -44,18 +42,15 @@ get '/injestJSON' do
   # Injest the provided feed using the provided mappings
   injest(source_json, mappings_json, desired_array_key, preserve_meta)
 
-end
-
-get '/injestXML' do
 
 end
 
-get '/injestTXT' do
 
-end
+
+# Utilties
 
 # Injest the feed provided as json in 'source', using the mappings provided as json in 'mappings'
-def injestJSON source_json, mappings, desired_array_key, preserve_meta
+def injest source_json, mappings_json, desired_array_key, preserve_meta
 
   #dputs source_json
 
@@ -151,7 +146,6 @@ def injestJSON source_json, mappings, desired_array_key, preserve_meta
 
 
 end
-
 
 
 def searchAndReplace content, search, replace
